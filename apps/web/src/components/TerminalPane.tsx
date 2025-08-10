@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
-import { terminalWSUrl } from '@/lib/ws'
+import { API_BASE, terminalWSUrl } from '@/lib/ws'
 import { toast } from 'sonner'
 
 export default function TerminalPane() {
@@ -29,24 +29,25 @@ export default function TerminalPane() {
 
     const mkSocket = () => new WebSocket(terminalWSUrl())
     let reconnectTimer: any = null
-    const openSocket = () => {
-      const ws = mkSocket()
-      ;(ws as any)._reconnect = () => {
+    let ws: WebSocket | null = null
+    function openSocket() {
+      const socket = mkSocket()
+      ;(socket as any)._reconnect = () => {
         if (reconnectTimer) return
         reconnectTimer = setTimeout(() => {
           reconnectTimer = null
-          openSocket()
+          connect()
         }, 1500)
       }
-      ws.onopen = () => {
+      socket.onopen = () => {
         // kick a prompt and send initial size
-        ws.send(JSON.stringify({ type: 'input', data: '\\n' }))
+        socket.send(JSON.stringify({ type: 'input', data: '\\n' }))
         try {
-          ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+          socket.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
         } catch {}
         toast.success('Terminal connected')
       }
-      ws.onmessage = (ev) => {
+      socket.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data)
           if (msg.type === 'output' && typeof msg.data === 'string') {
@@ -56,31 +57,50 @@ export default function TerminalPane() {
           term.write(ev.data)
         }
       }
-      ws.onclose = () => {
+      socket.onclose = () => {
         term.write('\r\n[terminal] disconnected — retrying...\r\n')
-        ;(ws as any)._reconnect()
+        ;(socket as any)._reconnect()
         toast.error('Terminal disconnected — retrying...')
       }
       term.onData((d) => {
-        ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: 'input', data: d }))
+        socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify({ type: 'input', data: d }))
       })
       // Handle resize events
       term.onResize((size) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'resize', cols: size.cols, rows: size.rows }))
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'resize', cols: size.cols, rows: size.rows }))
         }
         fit.fit()
       })
-      return ws
+      return socket
     }
-    const ws = openSocket()
+
+    async function connect() {
+      const base = API_BASE.endsWith('/') ? API_BASE.slice(0, -1) : API_BASE
+      try {
+        const res = await fetch(`${base}/health`)
+        if (!res.ok) throw new Error('health check failed')
+        ws = openSocket()
+      } catch {
+        term.write('\r\n[terminal] backend unavailable — retrying...\r\n')
+        toast.error('Terminal backend unavailable — retrying...')
+        if (reconnectTimer) return
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null
+          connect()
+        }, 1500)
+      }
+    }
+
+    connect()
 
     const onResize = () => fit.fit()
     window.addEventListener('resize', onResize)
 
     return () => {
       window.removeEventListener('resize', onResize)
-      ws.close()
+      if (reconnectTimer) clearTimeout(reconnectTimer)
+      ws?.close()
       term.dispose()
     }
   }, [])

@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:5050'
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? 'http://localhost:5050'
 
 function toWsUrl(httpUrl: string): string {
   try {
