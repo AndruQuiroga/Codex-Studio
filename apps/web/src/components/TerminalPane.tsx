@@ -2,6 +2,8 @@
 import { useEffect, useRef } from 'react'
 import { Terminal } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
+import { terminalWSUrl } from '@/lib/ws'
+import { toast } from 'sonner'
 
 export default function TerminalPane() {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -25,24 +27,53 @@ export default function TerminalPane() {
       fit.fit()
     }
 
-    const ws = new WebSocket('ws://localhost:5050/ws/terminal')
-    ws.onopen = () => {
-      // kick a prompt
-      ws.send(JSON.stringify({ type: 'input', data: '\n' }))
-    }
-    ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data)
-        if (msg.type === 'output' && typeof msg.data === 'string') {
-          term.write(msg.data)
-        }
-      } catch {
-        term.write(ev.data)
+    const mkSocket = () => new WebSocket(terminalWSUrl())
+    let reconnectTimer: any = null
+    const openSocket = () => {
+      const ws = mkSocket()
+      ;(ws as any)._reconnect = () => {
+        if (reconnectTimer) return
+        reconnectTimer = setTimeout(() => {
+          reconnectTimer = null
+          openSocket()
+        }, 1500)
       }
+      ws.onopen = () => {
+        // kick a prompt and send initial size
+        ws.send(JSON.stringify({ type: 'input', data: '\\n' }))
+        try {
+          ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+        } catch {}
+        toast.success('Terminal connected')
+      }
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data)
+          if (msg.type === 'output' && typeof msg.data === 'string') {
+            term.write(msg.data)
+          }
+        } catch {
+          term.write(ev.data)
+        }
+      }
+      ws.onclose = () => {
+        term.write('\r\n[terminal] disconnected — retrying...\r\n')
+        ;(ws as any)._reconnect()
+        toast.error('Terminal disconnected — retrying...')
+      }
+      term.onData((d) => {
+        ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: 'input', data: d }))
+      })
+      // Handle resize events
+      term.onResize((size) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'resize', cols: size.cols, rows: size.rows }))
+        }
+        fit.fit()
+      })
+      return ws
     }
-    term.onData((d) => {
-      ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: 'input', data: d }))
-    })
+    const ws = openSocket()
 
     const onResize = () => fit.fit()
     window.addEventListener('resize', onResize)

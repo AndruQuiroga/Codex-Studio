@@ -17,9 +17,14 @@ export default function Sidebar() {
   const [root, setRoot] = useState<Node | null>(null)
 
   useEffect(() => {
-    fsList('').then(items => setRoot({ name: '.', path: '', dir: true, open: true, children: items }))
-      .catch(() => setRoot({ name: '.', path: '', dir: true, open: true, children: [] }))
+    refresh()
   }, [])
+
+  function refresh() {
+    fsList('')
+      .then(items => setRoot({ name: '.', path: '', dir: true, open: true, children: items }))
+      .catch(() => setRoot({ name: '.', path: '', dir: true, open: true, children: [] }))
+  }
 
   async function toggle(node: Node) {
     if (!node.dir) return
@@ -53,8 +58,16 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="h-full border-r w-56 p-2 text-sm text-zinc-300 overflow-auto">
-      {!root ? <div className="p-2 text-zinc-500">Loading…</div> : <Row node={root} />}
+    <aside className="h-full border-r w-56 text-sm text-zinc-300 flex flex-col">
+      <div className="p-2 border-b flex items-center justify-between">
+        <div className="font-semibold text-xs">Files</div>
+        <button className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-xs" onClick={refresh}>
+          Refresh
+        </button>
+      </div>
+      <div className="flex-1 overflow-auto p-2">
+        {!root ? <div className="p-2 text-zinc-500">Loading…</div> : <Row node={root} />}
+      </div>
     </aside>
   )
 }

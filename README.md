@@ -12,11 +12,12 @@ A chat‑first, local‑first workspace that pairs a Monaco editor, terminal, an
 See **scripts/bootstrap.sh** or **scripts/bootstrap.ps1** to scaffold Next.js, Tailwind, shadcn/ui, and the FastAPI env.
 
 ### Run
-- API: `cd apps/api && source .venv/bin/activate && uvicorn main:app --reload --port 5050`
+- API: `pnpm dev:api` (or `cd apps/api && uvicorn main:app --reload --port 5050`)
+- Both: `pnpm dev:all` (starts API and Web)
 - Web: `cd apps/web && pnpm dev` → http://localhost:3000
 
 ### Env
-Create `apps/api/.env` from `.env.example` values below.
+Create `apps/api/.env` from `.env.example` and `apps/web/.env.local` from `.env.local.example`.
 
 ```
 PROJECT_ROOT=/absolute/path/to/your/project
@@ -37,14 +38,17 @@ CORS_ORIGIN=http://localhost:3000
 ### Integrating Codex CLI
 By default the backend uses a **mock stream**. To enable Codex:
 1. Install your CLI: `pnpm add -D codex` or install globally.
-2. Set `CODEX_COMMAND` (e.g., `pnpm dlx codex` or `npx codex`).
+2. Set `CODEX_COMMAND` (e.g., `pnpm dlx codex` or `npx codex`). When set, the API streams real output; otherwise it uses a mock stream.
 3. Implement the `invoke_codex()` function in `apps/api/services/codex_adapter.py` to pass the prompt and parse its stdout.
 
 ### Security Notes
-- FS tools are root‑jailed to `PROJECT_ROOT`.
-- Shell commands are allowlisted in v0.1. See `services/fs.py`.
+- FS tools are root‑jailed to `PROJECT_ROOT`. Reads/writes capped at ~1MB and reject binary files.
+- Shell commands are allowlisted (`git`, `pnpm`, `npm`, `pytest`, etc.). See `services/fs.py`.
 
 ### Roadmap
 - Real tool calls from chat (FS, shell, git)
 - LSP diagnostics; Git UI; test runner surface
 - Multi‑agent (Planner/Coder/Critic) behind a feature flag
+
+### Optional Infra
+`infra/docker-compose.yml` provides Postgres and Redis for future persistence/queue. Current app doesn’t require them; start only if needed.

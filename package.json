@@ -7,6 +7,8 @@
   "scripts": {
     "dev:web": "pnpm --filter @codex-studio/web dev",
     "build:web": "pnpm --filter @codex-studio/web build",
+    "dev:api": "bash scripts/dev_api.sh || powershell -ExecutionPolicy Bypass -File scripts/dev_api.ps1",
+    "dev:all": "bash scripts/dev.sh || powershell -ExecutionPolicy Bypass -File scripts/dev.ps1",
     "dev": "turbo run dev",
     "build": "turbo run build"
   }

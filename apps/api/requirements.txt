@@ -7,4 +7,6 @@ python-multipart
 sqlmodel
 psycopg[binary]
 redis
-
+pytest
+black
+ruff
