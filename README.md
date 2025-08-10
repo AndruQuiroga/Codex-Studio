@@ -8,16 +8,29 @@ A chat‑first, local‑first workspace that pairs a Monaco editor, terminal, an
 - Single‑project focus. Terminal + Git + Tests.
 - Dark, sleek UI with subtle motion.
 
-## Getting Started
-See **scripts/bootstrap.sh** or **scripts/bootstrap.ps1** to scaffold Next.js, Tailwind, shadcn/ui, and the FastAPI env.
+## Prerequisites
+- Node.js 18+ with `pnpm` (enable via `corepack enable`)
+- Python 3.11+
+- (optional) Docker & docker compose for Postgres and Redis
 
-### Run
-- API: `pnpm dev:api` (or `cd apps/api && uvicorn main:app --reload --port 5050`)
-- Both: `pnpm dev:all` (starts API and Web)
-- Web: `cd apps/web && pnpm dev` → http://localhost:3000
+## Setup
+1. Install dependencies
+   ```bash
+   corepack enable          # ensures pnpm is available
+   pnpm install             # install JS deps for all packages
+   python -m venv apps/api/.venv
+   source apps/api/.venv/bin/activate
+   pip install -r apps/api/requirements.txt
+   ```
+   Or run `./scripts/bootstrap.sh` (`./scripts/bootstrap.ps1` on Windows) to do the above automatically.
+2. Create environment files:
+   - `apps/api/.env`
+   - `apps/web/.env.local`
+   Use the template below.
+3. (Optional) Start Postgres and Redis: `docker compose -f infra/docker-compose.yml up -d`
 
 ### Env
-Create `apps/api/.env` from `.env.example` and `apps/web/.env.local` from `.env.local.example`.
+Both `.env` files share the same values:
 
 ```
 PROJECT_ROOT=/absolute/path/to/your/project
@@ -27,6 +40,13 @@ CODEX_COMMAND=pnpm dlx codex  # or npx codex
 API_PORT=5050
 CORS_ORIGIN=http://localhost:3000
 ```
+
+### Run
+Open two terminals:
+1. **API** – `pnpm dev:api` (or `cd apps/api && uvicorn main:app --reload --port 5050`)
+2. **Web** – `pnpm dev:web` (or `cd apps/web && pnpm dev`)
+
+Visit http://localhost:3000 to use the app.
 
 ### What Works in v0.1
 - Chat page with WebSocket to FastAPI (`/ws/session/:id`)
