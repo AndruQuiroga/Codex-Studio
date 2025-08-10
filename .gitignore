@@ -1,0 +1,21 @@
+# Node
+node_modules
+.pnpm-store
+.next
+out
+
+# Python
+__pycache__
+.venv
+*.pyc
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+
+# Misc
+coverage

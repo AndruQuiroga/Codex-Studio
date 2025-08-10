@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic[dotenv]
+websockets
+structlog
+python-multipart
+sqlmodel
+psycopg[binary]
+redis
+

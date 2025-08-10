@@ -1,0 +1,13 @@
+{
+  "name": "codex-studio",
+  "private": true,
+  "devDependencies": {
+    "turbo": "latest"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @codex-studio/web dev",
+    "build:web": "pnpm --filter @codex-studio/web build",
+    "dev": "turbo run dev",
+    "build": "turbo run build"
+  }
+}
