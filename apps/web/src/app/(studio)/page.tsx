@@ -1,3 +1,5 @@
+"use client"
+import { useEffect } from 'react'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import Chat from '@/components/Chat'
@@ -7,8 +9,21 @@ import EditorPane from '@/components/EditorPane'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Tabs from '@/components/Tabs'
 import QuickOpen from '@/components/QuickOpen'
+import { useStudio } from '@/lib/store'
 
 export default function Studio() {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        const { quickOpen, setQuickOpen } = useStudio.getState()
+        setQuickOpen(!quickOpen)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div className="h-screen grid grid-rows-[3rem_1fr]">
       <Topbar />
