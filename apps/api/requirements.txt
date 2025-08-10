@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 pydantic[dotenv]
+pydantic-settings
 websockets
 structlog
 python-multipart
