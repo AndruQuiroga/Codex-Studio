@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { fsList, fsRead, type FsItem } from '@/lib/api'
+import { fsList, fsRead, fsMove, fsDelete, type FsItem } from '@/lib/api'
 import { useStudio } from '@/lib/store'
+import { File as FileIcon, Folder, FolderOpen, Pencil, Trash2 } from 'lucide-react'
 
 type Node = FsItem & { open?: boolean; children?: Node[] }
 
@@ -40,17 +41,69 @@ export default function Sidebar() {
     setFile(node.path, content)
   }
 
+  async function renameNode(node: Node) {
+    const newName = prompt('Rename to', node.name)
+    if (!newName || newName === node.name) return
+    const parts = node.path.split('/')
+    parts[parts.length - 1] = newName
+    const newPath = parts.join('/')
+    try {
+      await fsMove(node.path, newPath)
+      refresh()
+    } catch (e: any) {
+      alert(e?.message ?? 'Rename failed')
+    }
+  }
+
+  async function deleteNode(node: Node) {
+    if (!confirm(`Delete ${node.name}?`)) return
+    try {
+      await fsDelete(node.path)
+      refresh()
+    } catch (e: any) {
+      alert(e?.message ?? 'Delete failed')
+    }
+  }
+
   function Row({ node, depth = 0 }: { node: Node; depth?: number }) {
     return (
       <div className="select-none">
         <div
-          className="flex items-center gap-2 py-1 px-2 rounded hover:bg-zinc-800/50 cursor-pointer"
+          className="flex items-center gap-2 py-1 px-2 rounded hover:bg-zinc-800/50 cursor-pointer group"
           style={{ paddingLeft: 8 + depth * 12 }}
           onClick={() => (node.dir ? toggle(node) : openFile(node))}
           title={node.path || '/'}
         >
-          {node.dir ? <span>{node.open ? '📂' : '📁'}</span> : <span>📄</span>}
+          {node.dir ? (
+            node.open ? <FolderOpen className="w-4 h-4" /> : <Folder className="w-4 h-4" />
+          ) : (
+            <FileIcon className="w-4 h-4" />
+          )}
           <span className="truncate">{node.name}</span>
+          {node.path && (
+            <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100">
+              <button
+                className="p-1 hover:bg-zinc-700 rounded"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  renameNode(node)
+                }}
+                title="Rename"
+              >
+                <Pencil className="w-3 h-3" />
+              </button>
+              <button
+                className="p-1 hover:bg-zinc-700 rounded"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  deleteNode(node)
+                }}
+                title="Delete"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
         {node.dir && node.open && node.children?.map((c) => <Row key={c.path} node={c} depth={depth + 1} />)}
       </div>
