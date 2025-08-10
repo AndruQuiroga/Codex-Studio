@@ -29,16 +29,21 @@ export default function TerminalPane() {
 
     const mkSocket = () => new WebSocket(terminalWSUrl())
     let reconnectTimer: any = null
+    let errorCount = 0
+    let hadError = false
     const openSocket = () => {
       const ws = mkSocket()
       ;(ws as any)._reconnect = () => {
         if (reconnectTimer) return
+        const delay = errorCount >= 3 ? 5000 : 1500
         reconnectTimer = setTimeout(() => {
           reconnectTimer = null
           openSocket()
-        }, 1500)
+        }, delay)
       }
       ws.onopen = () => {
+        errorCount = 0
+        hadError = false
         // kick a prompt and send initial size
         ws.send(JSON.stringify({ type: 'input', data: '\\n' }))
         try {
@@ -56,10 +61,22 @@ export default function TerminalPane() {
           term.write(ev.data)
         }
       }
-      ws.onclose = () => {
+      ws.onerror = (event) => {
+        hadError = true
+        errorCount++
+        console.error('Terminal WebSocket error', { event, readyState: ws.readyState })
+        const message = (event as ErrorEvent).message || 'unknown error'
+        toast.error(`Terminal error: ${message}`)
+        ws.close()
+      }
+      ws.onclose = (ev) => {
         term.write('\r\n[terminal] disconnected — retrying...\r\n')
         ;(ws as any)._reconnect()
-        toast.error('Terminal disconnected — retrying...')
+        if (!hadError) {
+          const reason = ev.reason ? ` (${ev.reason})` : ''
+          const suffix = errorCount >= 3 ? 'retrying in 5s...' : 'retrying...'
+          toast.error(`Terminal disconnected${reason} — ${suffix}`)
+        }
       }
       term.onData((d) => {
         ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify({ type: 'input', data: d }))
