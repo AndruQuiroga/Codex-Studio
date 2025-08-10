@@ -4,13 +4,8 @@ from schemas import Out
 from settings import settings
 from services.codex_adapter import invoke_codex
 from routers.fs import router as fs_router
-from routers.shell import router as shell_router
-from routers.search import router as search_router
-from routers.format import router as format_router
-from routers.tests import router as tests_router
 import json, uuid, asyncio, os, sys, contextlib
 from pathlib import Path
-from typing import Optional
 
 # Optional PTY deps for POSIX
 try:  # pragma: no cover - platform specific
@@ -23,7 +18,6 @@ except Exception:  # pragma: no cover
     fcntl = None  # type: ignore
     struct = None  # type: ignore
     POSIX = False
-from pathlib import Path
 
 app = FastAPI()
 # Support comma-separated origins
@@ -49,10 +43,6 @@ async def on_startup():
 
 # REST routers
 app.include_router(fs_router, prefix="/api")
-app.include_router(shell_router, prefix="/api")
-app.include_router(search_router, prefix="/api")
-app.include_router(format_router, prefix="/api")
-app.include_router(tests_router, prefix="/api")
 
 @app.websocket("/ws/session/{session_id}")
 async def session_ws(ws: WebSocket, session_id: str):
