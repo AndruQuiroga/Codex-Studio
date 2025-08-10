@@ -84,7 +84,6 @@ def list_dir(path: str = Query(default="", description="Relative path from PROJE
 
 @router.get("/fs/tree", response_model=List[str])
 def tree(path: str = ""):
-    root = Path(settings.project_root).resolve()
     start = _abs_from_rel(path)
     if not Path(start).exists():
         raise HTTPException(status_code=404, detail="Path not found")
