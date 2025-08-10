@@ -1,6 +1,7 @@
 {
   "name": "codex-studio",
   "private": true,
+  "packageManager": "pnpm@10.5.2",
   "devDependencies": {
     "turbo": "latest"
   },
