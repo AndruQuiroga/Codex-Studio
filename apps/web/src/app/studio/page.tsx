@@ -3,12 +3,14 @@ import { useEffect } from 'react'
 import Topbar from '@/components/Topbar'
 import Sidebar from '@/components/Sidebar'
 import Chat from '@/components/Chat'
-import TerminalPane from '@/components/TerminalPane'
+import dynamic from 'next/dynamic'
 import RightRail from '@/components/RightRail'
-import EditorPane from '@/components/EditorPane'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Tabs from '@/components/Tabs'
 import QuickOpen from '@/components/QuickOpen'
+
+const EditorPane = dynamic(() => import('@/components/EditorPane'), { ssr: false })
+const TerminalPane = dynamic(() => import('@/components/TerminalPane'), { ssr: false })
 import { useStudio } from '@/lib/store'
 
 export default function Studio() {
