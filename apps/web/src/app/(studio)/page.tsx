@@ -24,8 +24,12 @@ export default function Studio() {
             </Panel>
             <PanelResizeHandle className="h-1 bg-zinc-900 hover:bg-zinc-800 cursor-row-resize" />
             <Panel defaultSize={33} minSize={20} className="border-b overflow-hidden">
-              <Tabs />
-              <EditorPane />
+              <div className="flex flex-col h-full">
+                <Tabs />
+                <div className="flex-1">
+                  <EditorPane />
+                </div>
+              </div>
             </Panel>
             <PanelResizeHandle className="h-1 bg-zinc-900 hover:bg-zinc-800 cursor-row-resize" />
             <Panel defaultSize={33} minSize={15} className="overflow-hidden">
