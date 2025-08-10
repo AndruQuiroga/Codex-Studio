@@ -8,5 +8,7 @@ sqlmodel
 psycopg[binary]
 redis
 pytest
+pytest-cov
+httpx
 black
 ruff
