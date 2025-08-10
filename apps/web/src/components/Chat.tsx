@@ -4,12 +4,14 @@ import { connectWS } from '@/lib/ws'
 import { motion } from 'framer-motion'
 import Markdown from '@/components/Markdown'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 type Msg = { role: 'user' | 'assistant'; text: string }
 
 export default function Chat() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
+  const [isStreaming, setIsStreaming] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const sessionId = 'local'
@@ -31,13 +33,14 @@ export default function Chat() {
             return next
           })
         } else if (data.type === 'final') {
-          // noop
+          setIsStreaming(false)
         } else if (data.type === 'tool_request') {
           setMessages((m) => [...m, { role: 'assistant', text: `Tool requested: ${data.payload?.tool ?? 'unknown'}` }])
         } else if (data.type === 'tool_result') {
           setMessages((m) => [...m, { role: 'assistant', text: `Tool result:\n${data.payload?.text ?? ''}` }])
         } else if (data.type === 'error') {
           setMessages((m) => [...m, { role: 'assistant', text: `Error: ${data.payload?.message ?? 'unknown'}` }])
+          setIsStreaming(false)
         }
         // Scroll to bottom on new output
         requestAnimationFrame(() => {
@@ -47,6 +50,7 @@ export default function Chat() {
       }
       ws.onclose = () => {
         toast.error('Chat disconnected — retrying...')
+        setIsStreaming(false)
         timer = setTimeout(open, 1500)
       }
       ws.onopen = () => {
@@ -63,12 +67,21 @@ export default function Chat() {
   function sendPrompt() {
     const ws = wsRef.current
     if (!ws || ws.readyState !== WebSocket.OPEN) return
-    if (!input.trim()) return
+    if (!input.trim() || isStreaming) return
     setMessages((m) => [...m, { role: 'user', text: input }, { role: 'assistant', text: '' }])
     ws.send(
       JSON.stringify({ type: 'user', payload: { text: input }, messageId: crypto.randomUUID() })
     )
     setInput('')
+    setIsStreaming(true)
+  }
+
+  function stop() {
+    const ws = wsRef.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'cancel' }))
+    }
+    setIsStreaming(false)
   }
 
   return (
@@ -86,7 +99,7 @@ export default function Chat() {
           </div>
         ))}
       </div>
-      <div className="p-3 border-t bg-zinc-950/50 flex gap-2">
+      <div className="p-3 border-t bg-zinc-950/50 flex gap-2 items-end">
         <textarea
           className="flex-1 bg-zinc-900 rounded-xl px-3 py-2 outline-none min-h-[2.5rem] max-h-32"
           value={input}
@@ -99,7 +112,25 @@ export default function Chat() {
           }}
           placeholder="Ask the agent… (Shift+Enter for newline)"
         />
-        <button className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50" disabled={!input.trim()} onClick={sendPrompt}>
+        {isStreaming && (
+          <div className="flex items-center gap-2 pr-1">
+            <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+            <span className="text-xs text-zinc-400">Streaming...</span>
+          </div>
+        )}
+        {isStreaming && (
+          <button
+            className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700"
+            onClick={stop}
+          >
+            Stop
+          </button>
+        )}
+        <button
+          className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50"
+          disabled={!input.trim() || isStreaming}
+          onClick={sendPrompt}
+        >
           Send
         </button>
       </div>
