@@ -1,4 +1,5 @@
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -12,10 +13,7 @@ class Settings(BaseSettings):
     cors_origin: str = Field("http://localhost:3000", alias="CORS_ORIGIN")
     api_port: int = Field(5050, alias="API_PORT")
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
-settings = Settings(_env_file=".env", _secrets_dir=None)
-
+settings = Settings(_secrets_dir=None)
