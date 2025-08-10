@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional
 from pathlib import Path
 
@@ -8,35 +8,58 @@ from services.fs import safe_join
 
 router = APIRouter()
 
+
+def _validate_relative_path(cls, v: str) -> str:
+    """Validate that ``v`` is a safe project-relative path.
+
+    The filesystem API only accepts paths that are relative to the project
+    root. Absolute paths or any use of ``..`` to traverse parent directories
+    are rejected.
+    """
+    p = Path(v)
+    if p.is_absolute() or any(part == ".." for part in p.parts):
+        raise ValueError("Path must be relative and must not contain '..'")
+    return v
+
 class FsItem(BaseModel):
     name: str
     path: str  # path relative to project root
     dir: bool
 
 class WriteBody(BaseModel):
-    path: str
+    path: str  # relative path from project root
     content: str
+
+    _validate_path = field_validator("path")(_validate_relative_path)
 
 MAX_TEXT_BYTES = 1_000_000  # 1MB safeguard
 
 
 class PathBody(BaseModel):
-    path: str
+    path: str  # relative path from project root
+
+    _validate_path = field_validator("path")(_validate_relative_path)
 
 
 class MkdirBody(BaseModel):
-    path: str
+    path: str  # relative path from project root
     parents: bool = True
+
+    _validate_path = field_validator("path")(_validate_relative_path)
 
 
 class CreateBody(BaseModel):
-    path: str
+    path: str  # relative path from project root
     content: Optional[str] = ""
+
+    _validate_path = field_validator("path")(_validate_relative_path)
 
 
 class MoveBody(BaseModel):
-    src: str
-    dst: str
+    src: str  # relative source path
+    dst: str  # relative destination path
+
+    _validate_paths = field_validator("src", "dst")(_validate_relative_path)
 
 def _abs_from_rel(rel: str) -> Path:
     root = settings.project_root
