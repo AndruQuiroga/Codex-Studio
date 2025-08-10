@@ -50,20 +50,6 @@ export default function RightRail() {
       setRunning(false)
     }
   }
-
-  async function runTests() {
-    setRunning(true)
-    setTestOut('')
-    try {
-      const out = await shellRun(['pytest', '-q'])
-      setTestOut(out.stdout || '(no output)')
-    } catch {
-      setTestOut('Failed to run tests')
-    } finally {
-      setRunning(false)
-    }
-  }
-
   async function showDiff() {
     setRunning(true)
     try {
